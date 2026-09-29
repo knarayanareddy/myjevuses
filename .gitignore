@@ -1,0 +1,14 @@
+# Local env
+.env
+.env.*
+!.env.example
+
+# API keys must never be committed
+*key*
+*secret*
+*.pem
+
+# OS
+.DS_Store
+.idea/
+.vscode/
