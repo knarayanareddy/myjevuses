@@ -51,6 +51,9 @@ function walk(dir: string, out: Chunk[]) {
     // makes every query match itself.
     if (entry.name === "jevgrep.ts") continue;
     if (path.relative(SOURCE_DIR, full).startsWith("ui/")) continue;
+    // data/ holds this generated corpus; indexing it would duplicate everything
+    // (and make the file match its own search).
+    if (path.relative(SOURCE_DIR, full).startsWith("data/")) continue;
     out.push(...chunkFile(full));
   }
 }

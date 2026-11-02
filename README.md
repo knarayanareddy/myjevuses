@@ -5,6 +5,9 @@
 > produces, the code that owns the decision, and its feasibility limits. No API key is required — a deterministic local
 > engine answers the same panels — and setting `TYPESAFE_API_KEY` reruns everything against live Jev.
 > See **[docs/USE-CASES.md](docs/USE-CASES.md)** for the implementation map. The catalogue below is the reasoning behind it.
+>
+> It runs two ways: `npm run dev` for the served app (add `TYPESAFE_API_KEY` to send every panel to live Jev), or
+> `npm run build:pages` for a server-free build you can put on GitHub Pages, where the same modules run in the browser.
 
 A feasibility-reviewed catalogue of what Jev (TypeSafe's "System One" model) is actually good for, what people are genuinely using it for, and what the popular examples get wrong.
 

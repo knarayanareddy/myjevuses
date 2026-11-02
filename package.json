@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "index:repo": "tsx scripts/build-repo-index.mts",
     "build:pages": "npm run index:repo && VITE_STATIC=1 vite build --base=/myjevuses/",
-    "preview:static": "vite preview --host 0.0.0.0 --port 4173"
+    "preview:static": "vite preview --host 0.0.0.0 --port 4173",
+    "build:static": "npm run index:repo && VITE_STATIC=1 vite build"
   },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.7.0",

@@ -58,6 +58,38 @@ TYPESAFE_API_KEY=... npm run dev
 Every panel then goes to `POST https://api.typesafe.ai/v1/systemone`. The adapter passes `trueCriteria` / `falseCriteria`
 through as the SDK's `criteria` field, so the written descriptions of "yes" and "no" survive the switch unchanged.
 
+## Two deployments, one codebase
+
+The same app ships two ways, and the modules are the same in both:
+
+| | Served (`npm run dev`) | Static (`npm run build:pages`) |
+|---|---|---|
+| Where modules execute | Node, behind `POST /api/run/:id` | your browser, imported from the bundle |
+| Provider | `LocalProvider`, or live Jev with `TYPESAFE_API_KEY` | `LocalProvider` only — no key can be shipped to a page |
+| Routing | normal paths | `HashRouter` (Pages has no SPA fallback) |
+| Provider label | "Local engine" / "Live Jev" | "Static · local engine" |
+
+`src/ui/api.ts` is the only branch: when `VITE_STATIC=1` it dynamically imports `src/usecases/index.ts` and
+`src/engine/local.ts` and runs `useCase.run(input, new LocalProvider())` in the page. Panels, thresholds, candidate
+generation and every code-owned decision are therefore identical in both builds — only the probabilities are the local
+stand-in, and the static banner says so.
+
+To keep that possible, nothing under `src/engine/` or `src/usecases/` may touch `fs`, `path` or `process`. Jevgrep was
+the one offender: it used to chunk the repo from disk at runtime. It now reads a generated corpus
+(`src/data/repo-index.ts`, rebuilt by `npm run index:repo`), so the search demo also works on a static page.
+
+### Deploying the Pages build
+
+`.github/workflows/pages.yml` runs `npm ci && npm test`, builds with `VITE_STATIC=1` and `--base=/<repo>/`, copies
+`index.html` to `404.html`, adds `.nojekyll`, and deploys the artifact. It triggers on pushes to `main` and on manual
+dispatch. The project-site base path matters: without it, `/assets/*` 404s under `https://<user>.github.io/<repo>/`.
+
+```bash
+npm run build:pages   # emits dist/ for a project site at /<repo>/
+npm run preview:static  # serves that build locally at http://localhost:4173/<repo>/
+npm run build:static  # base "/" build, for a user site or any static host at a root path
+```
+
 ## What the local engine is, and is not
 
 With no key, `LocalProvider` answers the same panels using weighted lexical overlap, a small table of concept tags
