@@ -12,3 +12,8 @@
 .DS_Store
 .idea/
 .vscode/
+
+# Build output and dependencies
+node_modules/
+dist/
+*.log

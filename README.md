@@ -1,5 +1,11 @@
 # How I Use Jev
 
+> **This repository now ships a runnable showcase of the twelve agentic use cases.** `npm install && npm run dev`
+> opens a live demo for each one: the state, the typed question panel with every probability visible, the artefacts it
+> produces, the code that owns the decision, and its feasibility limits. No API key is required — a deterministic local
+> engine answers the same panels — and setting `TYPESAFE_API_KEY` reruns everything against live Jev.
+> See **[docs/USE-CASES.md](docs/USE-CASES.md)** for the implementation map. The catalogue below is the reasoning behind it.
+
 A feasibility-reviewed catalogue of what Jev (TypeSafe's "System One" model) is actually good for, what people are genuinely using it for, and what the popular examples get wrong.
 
 **Purpose:** decide whether a task is worth building on Jev before you build it, and know which claims in circulating write-ups are unverified.
