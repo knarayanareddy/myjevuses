@@ -3,6 +3,11 @@ name: Deploy showcase to GitHub Pages
 # Builds the static rendition of the twelve use cases and publishes it.
 # The static build runs every module in the browser against the local engine
 # (there is no server on Pages, so there is nothing to call an API).
+#
+# Turning Pages on is an admin action that a workflow token cannot perform, so
+# this workflow detects whether the site exists and skips the deploy with a
+# warning instead of failing. Enable it once under
+# Settings → Pages → Source: "GitHub Actions", then re-run this workflow.
 
 on:
   workflow_dispatch:
@@ -21,12 +26,14 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      pages: ${{ steps.pages.outputs.enabled }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -48,20 +55,27 @@ jobs:
           touch dist/.nojekyll
           du -sh dist
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          # Enables Pages (source: GitHub Actions) on the first run if the repo
-          # has not turned it on yet. Requires the pages:write permission above.
-          enablement: true
+      - name: Check whether Pages is enabled
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" > /dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=GitHub Pages is off::A repository admin has to open Settings → Pages and set Source to \"GitHub Actions\". Until then this workflow builds and tests the static site but cannot publish it."
+          fi
 
       - name: Upload artifact
+        if: steps.pages.outputs.enabled == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
     needs: build
+    if: needs.build.outputs.pages == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

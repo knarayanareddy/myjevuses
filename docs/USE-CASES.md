@@ -84,6 +84,10 @@ the one offender: it used to chunk the repo from disk at runtime. It now reads a
 `index.html` to `404.html`, adds `.nojekyll`, and deploys the artifact. It triggers on pushes to `main` and on manual
 dispatch. The project-site base path matters: without it, `/assets/*` 404s under `https://<user>.github.io/<repo>/`.
 
+Enabling Pages is an admin action that a workflow token cannot perform, so the workflow asks the API whether the site
+exists. If it does not, the run still builds and tests everything and then stops with a warning naming the exact setting
+to flip (Settings → Pages → Source: "GitHub Actions"); re-run the workflow afterwards and it publishes.
+
 ```bash
 npm run build:pages   # emits dist/ for a project site at /<repo>/
 npm run preview:static  # serves that build locally at http://localhost:4173/<repo>/
