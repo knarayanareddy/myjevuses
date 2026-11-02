@@ -1,97 +1,16 @@
-import fs from "node:fs";
-import path from "node:path";
+import { REPO_INDEX, type CodeChunk } from "../data/repo-index.js";
 import type { JevProvider } from "../engine/types.js";
 import { tokenize } from "../engine/text.js";
 import { Panel, money, truncate, type RunResult, type UseCaseMeta } from "./types.js";
 
-type Chunk = { id: string; file: string; startLine: number; text: string };
-
-let cache: Chunk[] | null = null;
-
-const FALLBACK: Chunk[] = [
-  {
-    id: "fallback-1",
-    file: "src/usecases/browser-action.ts",
-    startLine: 1,
-    text: `export function candidateActions(goal, elements) {
-  // only legal (action, target) pairs reach the model
-  const candidates = [];
-  for (const el of elements) {
-    if (el.disabled || el.hidden) continue;
-    if (INTERACTIVE.has(el.role)) candidates.push({ id: \`click:\${el.ref}\`, label: \`click "\${el.name}"\` });
-    if (TYPABLE.has(el.role)) candidates.push({ id: \`type:\${el.ref}\`, label: \`type into "\${el.name}"\` });
-  }
-  candidates.push({ id: "stop", label: "stop and report" });
-  return candidates;
-}`,
-  },
-  {
-    id: "fallback-2",
-    file: "src/usecases/trace-evaluation.ts",
-    startLine: 1,
-    text: `export function similar(a, b) {
-  const aw = new Set(a.split(/\\s+/)), bw = new Set(b.split(/\\s+/));
-  let shared = 0; for (const w of aw) if (bw.has(w)) shared++;
-  return shared / Math.max(aw.size, bw.size) > 0.85; // duplicate step detection
-}`,
-  },
-];
+type Chunk = CodeChunk;
 
 /**
- * Chunk the repo's own source at top-level declarations, so a chunk is a whole
- * function rather than a slice of one. All-caps fixture constants are skipped:
- * they are demo data, not behaviour.
+ * The corpus is generated at build time (`npm run index:repo`) rather than read
+ * from disk, so the same code runs in Node and in the static browser build.
  */
-export function indexRepo(root = path.join(process.cwd(), "src")): Chunk[] {
-  if (cache) return cache;
-  const chunks: Chunk[] = [];
-
-  const walk = (dir: string) => {
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!/\.(ts|tsx)$/.test(entry.name)) continue;
-      // Never index the search tool itself: it contains this demo's own copy
-      // and would match every query about searching.
-      if (entry.name === "jevgrep.ts") continue;
-
-      const source = fs.readFileSync(full, "utf8");
-      if (source.length > 120_000) continue;
-      const lines = source.split("\n");
-
-      const starts: number[] = [];
-      lines.forEach((line, i) => {
-        if (/^(export\s+)?(async\s+)?(function|class|const|let|type|interface)\b/.test(line)) starts.push(i);
-      });
-      starts.push(lines.length);
-      const rel = path.relative(process.cwd(), full).replace(/\\/g, "/");
-
-      for (let k = 0; k < starts.length - 1; k += 1) {
-        const begin = starts[k];
-        const finish = Math.min(starts[k + 1], begin + 70);
-        const text = lines.slice(begin, finish).join("\n").trim();
-        if (text.length < 140) continue;
-        if (/^const\s+[A-Z0-9_]+\s*[:=]/.test(text)) continue; // fixture constants
-        if (/^export const \w+: UseCaseMeta/.test(text)) continue; // demo metadata, not behaviour
-        chunks.push({ id: `${rel}:${begin + 1}`, file: rel, startLine: begin + 1, text });
-      }
-    }
-  };
-
-  walk(root);
-  // The UI holds demo copy about each use case, not behaviour.
-  const withoutUi = chunks.filter((chunk) => !chunk.file.startsWith("src/ui/"));
-  cache = withoutUi.length ? withoutUi : chunks.length ? chunks : FALLBACK;
-  return cache;
+export function repoChunks(): Chunk[] {
+  return REPO_INDEX;
 }
 
 function lexicalScore(query: string, text: string): number {
@@ -157,7 +76,7 @@ export const jevgrep: UseCaseMeta = {
   async run(input, provider: JevProvider): Promise<RunResult> {
     const query = input.query ?? "";
     const limit = Math.max(2, Math.min(20, Number(input.shortlist) || 8));
-    const chunks = indexRepo();
+    const chunks = repoChunks();
     const panel = new Panel(provider);
     // A code search reranker tolerates a low bar because the shortlist is
     // already narrow; the cost of a false positive is one wasted snippet.
@@ -265,7 +184,7 @@ return ranked.filter(r => r.p >= 0.5);`,
       ],
       usage: panel.usage(),
       notes: [
-        "Indexed corpus is this repo's own src/ tree, chunked at function boundaries with line numbers preserved.",
+        "The corpus is this repository's own src/ tree, chunked at top-level declarations with line numbers preserved and regenerated at build time — no filesystem at runtime, which is what lets this run in a static build.",
         "The published tools in this space (jgrep, oko, jevr) all follow this shape: deterministic retrieval, semantic rerank, visible shortlist.",
       ],
     };

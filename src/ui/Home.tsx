@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import type { MetaWire, ProviderStatus } from "./api.js";
+import { STATIC_BUILD, type MetaWire, type ProviderStatus } from "./api.js";
 import { Primitives } from "./components.js";
 
 const PRIMITIVES = [
@@ -50,9 +50,12 @@ export function Home({ useCases, provider }: { useCases: MetaWire[]; provider: P
         </div>
         {!provider.live ? (
           <div className="provider-banner">
-            <strong>Local simulation running.</strong> No <code>TYPESAFE_API_KEY</code> is set in this environment, so a
-            deterministic lexical engine answers the same typed panels. The demo structure, thresholds, and code paths
-            are real; the probabilities are illustrative. Add a key and restart to rerun every demo against live Jev.
+            <strong>{provider.label}.</strong>{" "}
+            {STATIC_BUILD
+              ? "This is the GitHub Pages build, so every panel runs in your browser. Same modules, thresholds and decisions as the served app; a deterministic local engine stands in for Jev."
+              : "No TYPESAFE_API_KEY is set in this environment, so a deterministic lexical engine answers the same typed panels."}{" "}
+            The demo structure, thresholds, and code paths are real; the probabilities are illustrative. Add a key and
+            restart to rerun every demo against live Jev.
           </div>
         ) : (
           <div className="provider-banner provider-live">

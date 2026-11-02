@@ -6,10 +6,13 @@
   "description": "Twelve agentic use cases for Jev, built as a runnable showcase.",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build": "npm run index:repo && vite build",
     "start": "NODE_ENV=production tsx server.ts",
     "test": "node --import tsx --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "index:repo": "tsx scripts/build-repo-index.mts",
+    "build:pages": "npm run index:repo && VITE_STATIC=1 vite build --base=/myjevuses/",
+    "preview:static": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.7.0",
